@@ -99,12 +99,14 @@ DT = 0.5
 PI = 3.14159265358979323846
 RAD_TO_DEG = 57.29578
 AA = 0.98
-gyrox_angle = 0.0;
-gyroy_angle = 0.0;
-gyroz_angle = 0.0;
+gyrox_angle = 0.0
+gyroy_angle = 0.0
+gyroz_angle = 0.0
+CFangx = 0.0
+CFangy = 0.0
 
 while True:
-    time.sleep(0.5)
+    now = time.clock()
     magx = twos_comp_combine(b.read_byte_data(LSM, MAG_X_MSB), b.read_byte_data(LSM, MAG_X_LSB))
     magy = twos_comp_combine(b.read_byte_data(LSM, MAG_Y_MSB), b.read_byte_data(LSM, MAG_Y_LSB))
     magz = twos_comp_combine(b.read_byte_data(LSM, MAG_Z_MSB), b.read_byte_data(LSM, MAG_Z_LSB))
@@ -130,11 +132,12 @@ while True:
     gyroy_angle+=rate_gyroy*DT;
     gyroz_angle+=rate_gyroz*DT;
     
-    accx_angle = (atan2(accy,accz)+PI)*RAD_TO_DEG;
-    accy_angle = (atan2(accz,accx)+PI)*RAD_TO_DEG;
+    accx_angle = (math.atan2(accy,accz)+PI)*RAD_TO_DEG;
+    accy_angle = (math.atan2(accz,accx)+PI)*RAD_TO_DEG;
     
     CFangx = AA*(CFangx+gyrox_angle) +(1 - AA) * accx_angle;
     CFangy = AA*(CFangy+gyroy_angle) +(1 - AA) * accy_angle;
 
     print "Angle = ", CFangx, CFangy
-    
+    while time.clock() <= now + 0.5:
+        pass
