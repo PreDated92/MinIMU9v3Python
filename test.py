@@ -99,6 +99,9 @@ DT = 0.5
 PI = 3.14159265358979323846
 RAD_TO_DEG = 57.29578
 AA = 0.98
+gyrox_angle = 0.0;
+gyroy_angle = 0.0;
+gyroz_angle = 0.0;
 
 while True:
     time.sleep(0.5)
