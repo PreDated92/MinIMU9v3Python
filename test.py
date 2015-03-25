@@ -8,7 +8,7 @@
 
 #Driver by Fayetteville Free Library Robotics Group
 
-import time
+import time, math
 from smbus import SMBus
 busNum = 1
 b = SMBus(busNum)
@@ -95,22 +95,43 @@ b.write_byte_data(LSM, CTRL_7, 0x00) #get magnetometer out of low power mode
 
 b.write_byte_data(LGD, LGD_CTRL_1, 0x0F) #turn on gyro and set to normal mode
 
+DT = 0.5
+PI = 3.14159265358979323846
+RAD_TO_DEG = 57.29578
+AA = 0.98
+
 while True:
     time.sleep(0.5)
     magx = twos_comp_combine(b.read_byte_data(LSM, MAG_X_MSB), b.read_byte_data(LSM, MAG_X_LSB))
     magy = twos_comp_combine(b.read_byte_data(LSM, MAG_Y_MSB), b.read_byte_data(LSM, MAG_Y_LSB))
     magz = twos_comp_combine(b.read_byte_data(LSM, MAG_Z_MSB), b.read_byte_data(LSM, MAG_Z_LSB))
 
-    print "Magnetic field (x, y, z):", magx, magy, magz
+    #print "Magnetic field (x, y, z):", magx, magy, magz
 
     accx = twos_comp_combine(b.read_byte_data(LSM, ACC_X_MSB), b.read_byte_data(LSM, ACC_X_LSB))
     accy = twos_comp_combine(b.read_byte_data(LSM, ACC_Y_MSB), b.read_byte_data(LSM, ACC_Y_LSB))
     accz = twos_comp_combine(b.read_byte_data(LSM, ACC_Z_MSB), b.read_byte_data(LSM, ACC_Z_LSB))
 
-    print "Acceleration (x, y, z):", accx, accy, accz
+    #print "Acceleration (x, y, z):", accx, accy, accz
 
     gyrox = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_X_MSB), b.read_byte_data(LGD, LGD_GYRO_X_LSB))
     gyroy = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_Y_MSB), b.read_byte_data(LGD, LGD_GYRO_Y_LSB))
     gyroz = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_Z_MSB), b.read_byte_data(LGD, LGD_GYRO_Z_LSB))
+    
+    #print "Gyroscope (x, y, z):", gyrox, gyroy, gyroz
+    rate_gyrox = gyrox * 0.00875
+    rate_gyroy = gyroy * 0.00875
+    rate_gyroz = gyroz * 0.00875
+    
+    gyrox_angle+=rate_gyrox*DT;
+    gyroy_angle+=rate_gyroy*DT;
+    gyroz_angle+=rate_gyroz*DT;
+    
+    accx_angle = (atan2(accy,accz)+PI)*RAD_TO_DEG;
+    accy_angle = (atan2(accz,accx)+PI)*RAD_TO_DEG;
+    
+    CFangx = AA*(CFangx+gyrox_angle) +(1 - AA) * accx_angle;
+    CFangy = AA*(CFangy+gyroy_angle) +(1 - AA) * accy_angle;
 
-    print "Gyroscope (x, y, z):", gyrox, gyroy, gyroz
+    print "Angle = ", CFangx, CFangy
+    
