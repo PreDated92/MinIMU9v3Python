@@ -12,10 +12,6 @@ from smbus import SMBus
 busNum = 1
 b = SMBus(busNum)
 
-LSM = 0x1d
-
-LSM_WHOAMI = 0b1001001 #Device self-id
-
 def twos_comp_combine(msb, lsb):
     twos_comp = 256*msb + lsb
     if twos_comp >= 32768:
@@ -23,8 +19,12 @@ def twos_comp_combine(msb, lsb):
     else:
         return twos_comp
 
-#Control register addresses -- from LSM303D datasheet
+## LSM303D Registers
+LSM = 0x1d #I2C Address of the LSM303D
+LSM_WHOAMI_ID = 0b1001001 #Device self-id
+LSM_WHOAMI_ADDRESS = 0x0F
 
+#Control register addresses -- from LSM303D datasheet
 CTRL_0 = 0x1F #General settings
 CTRL_1 = 0x20 #Turns on accelerometer and configures data rate
 CTRL_2 = 0x21 #Self test accelerometer, anti-aliasing accel filter
@@ -54,11 +54,37 @@ ACC_Z_MSB = 0x2D
 TEMP_MSB = 0x05
 TEMP_LSB = 0x06
 
+## L3GD20H registers
 
-if b.read_byte_data(LSM, 0x0f) == LSM_WHOAMI:
+LGD = 0x6b #Device I2C slave address
+LGD_WHOAMI_ADDRESS = 0x0F
+LGD_WHOAMI_ID = 0b11010111 #Device self-id
+
+LGD_CTRL_1 = 0x20 #turns on gyro
+LGD_CTRL_2 = 0x21 #can set a high-pass filter for gyro
+LGD_CTRL_3 = 0x22
+LGD_CTRL_4 = 0x23
+LGD_CTRL_5 = 0x24
+LGD_CTRL_6 = 0x25
+
+LGD_TEMP = 0x26
+
+#Registers holding gyroscope readings
+LGD_GYRO_X_LSB = 0x28
+LGD_GYRO_X_MSB = 0x29
+LGD_GYRO_Y_LSB = 0x2A
+LGD_GYRO_Y_MSB = 0x2B
+LGD_GYRO_Z_LSB = 0x2C
+LGD_GYRO_Z_MSB = 0x2D
+
+if b.read_byte_data(LSM, LSM_WHOAMI_ADDRESS) == LSM_WHOAMI_ID:
     print 'LSM303D detected successfully.'
 else:
     print 'No LSM303D detected on bus '+str(busNum)+'.'
+if b.read_byte_data(LGD, LGD_WHOAMI_ADDRESS) == LGD_WHOAMI_ID:
+	print 'L3GD20H detected successfully.'
+else:
+    print 'No L3GD20H detected on bus on I2C bus '+str(busNum)+'.'
 
 b.write_byte_data(LSM, CTRL_1, 0b1010111) # enable accelerometer, 50 hz sampling
 b.write_byte_data(LSM, CTRL_2, 0x00) #set +- 2g full scale
@@ -66,15 +92,24 @@ b.write_byte_data(LSM, CTRL_5, 0b01100100) #high resolution mode, thermometer of
 b.write_byte_data(LSM, CTRL_6, 0b00100000) # set +- 4 gauss full scale
 b.write_byte_data(LSM, CTRL_7, 0x00) #get magnetometer out of low power mode
 
+b.write_byte_data(LGD, LGD_CTRL_1, 0x0F) #turn on gyro and set to normal mode
 
-magx = twos_comp_combine(b.read_byte_data(LSM, MAG_X_MSB), b.read_byte_data(LSM, MAG_X_LSB))
-magy = twos_comp_combine(b.read_byte_data(LSM, MAG_Y_MSB), b.read_byte_data(LSM, MAG_Y_LSB))
-magz = twos_comp_combine(b.read_byte_data(LSM, MAG_Z_MSB), b.read_byte_data(LSM, MAG_Z_LSB))
+while True:
+	time.sleep(0.5)
+	magx = twos_comp_combine(b.read_byte_data(LSM, MAG_X_MSB), b.read_byte_data(LSM, MAG_X_LSB))
+	magy = twos_comp_combine(b.read_byte_data(LSM, MAG_Y_MSB), b.read_byte_data(LSM, MAG_Y_LSB))
+	magz = twos_comp_combine(b.read_byte_data(LSM, MAG_Z_MSB), b.read_byte_data(LSM, MAG_Z_LSB))
 
-print "Magnetic field (x, y, z):", magx, magy, magz
+	print "Magnetic field (x, y, z):", magx, magy, magz
 
-accx = twos_comp_combine(b.read_byte_data(LSM, ACC_X_MSB), b.read_byte_data(LSM, ACC_X_LSB))
-accy = twos_comp_combine(b.read_byte_data(LSM, ACC_Y_MSB), b.read_byte_data(LSM, ACC_Y_LSB))
-accz = twos_comp_combine(b.read_byte_data(LSM, ACC_Z_MSB), b.read_byte_data(LSM, ACC_Z_LSB))
+	accx = twos_comp_combine(b.read_byte_data(LSM, ACC_X_MSB), b.read_byte_data(LSM, ACC_X_LSB))
+	accy = twos_comp_combine(b.read_byte_data(LSM, ACC_Y_MSB), b.read_byte_data(LSM, ACC_Y_LSB))
+	accz = twos_comp_combine(b.read_byte_data(LSM, ACC_Z_MSB), b.read_byte_data(LSM, ACC_Z_LSB))
 
-print "Acceleration (x, y, z):", accx, accy, accz
+	print "Acceleration (x, y, z):", accx, accy, accz
+	
+	gyrox = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_X_MSB), b.read_byte_data(LGD, LGD_GYRO_X_LSB))
+    gyroy = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_Y_MSB), b.read_byte_data(LGD, LGD_GYRO_Y_LSB))
+    gyroz = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_Z_MSB), b.read_byte_data(LGD, LGD_GYRO_Z_LSB))
+	
+	print "Gyroscope (x, y, z):", gyrox, gyroy, gyroz
