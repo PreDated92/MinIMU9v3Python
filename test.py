@@ -8,6 +8,7 @@
 
 #Driver by Fayetteville Free Library Robotics Group
 
+import time
 from smbus import SMBus
 busNum = 1
 b = SMBus(busNum)
