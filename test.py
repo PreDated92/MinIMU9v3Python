@@ -16,11 +16,11 @@ LSM = 0x1d
 
 LSM_WHOAMI = 0b1001001 #Device self-id
 
-def twos_comp_combine(msb, lsb)
-    twos_comp = 256msb + lsb
-    if twos_comp = 32768
+def twos_comp_combine(msb, lsb):
+    twos_comp = 256*msb + lsb
+    if twos_comp >= 32768:
         return twos_comp - 65536
-    else
+    else:
         return twos_comp
 
 #Control register addresses -- from LSM303D datasheet
@@ -55,9 +55,9 @@ TEMP_MSB = 0x05
 TEMP_LSB = 0x06
 
 
-if b.read_byte_data(LSM, 0x0f) == LSM_WHOAMI
+if b.read_byte_data(LSM, 0x0f) == LSM_WHOAMI:
     print 'LSM303D detected successfully.'
-else
+else:
     print 'No LSM303D detected on bus '+str(busNum)+'.'
 
 b.write_byte_data(LSM, CTRL_1, 0b1010111) # enable accelerometer, 50 hz sampling
@@ -71,10 +71,10 @@ magx = twos_comp_combine(b.read_byte_data(LSM, MAG_X_MSB), b.read_byte_data(LSM,
 magy = twos_comp_combine(b.read_byte_data(LSM, MAG_Y_MSB), b.read_byte_data(LSM, MAG_Y_LSB))
 magz = twos_comp_combine(b.read_byte_data(LSM, MAG_Z_MSB), b.read_byte_data(LSM, MAG_Z_LSB))
 
-print Magnetic field (x, y, z), magx, magy, magz
+print "Magnetic field (x, y, z):", magx, magy, magz
 
 accx = twos_comp_combine(b.read_byte_data(LSM, ACC_X_MSB), b.read_byte_data(LSM, ACC_X_LSB))
 accy = twos_comp_combine(b.read_byte_data(LSM, ACC_Y_MSB), b.read_byte_data(LSM, ACC_Y_LSB))
 accz = twos_comp_combine(b.read_byte_data(LSM, ACC_Z_MSB), b.read_byte_data(LSM, ACC_Z_LSB))
 
-print Acceleration (x, y, z), accx, accy, accz
+print "Acceleration (x, y, z):", accx, accy, accz
