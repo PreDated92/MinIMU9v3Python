@@ -87,15 +87,16 @@ if b.read_byte_data(LGD, LGD_WHOAMI_ADDRESS) == LGD_WHOAMI_ID:
 else:
     print 'No L3GD20H detected on bus on I2C bus '+str(busNum)+'.'
 
-b.write_byte_data(LSM, CTRL_1, 0b1010111) # enable accelerometer, 50 hz sampling
-b.write_byte_data(LSM, CTRL_2, 0x00) #set +- 2g full scale
+b.write_byte_data(LSM, CTRL_1, 0b1100111) # enable accelerometer, 100 hz sampling
+b.write_byte_data(LSM, CTRL_2, 0b0001100) #set +- 8g full scale
 b.write_byte_data(LSM, CTRL_5, 0b01100100) #high resolution mode, thermometer off, 6.25hz ODR
 b.write_byte_data(LSM, CTRL_6, 0b00100000) # set +- 4 gauss full scale
 b.write_byte_data(LSM, CTRL_7, 0x00) #get magnetometer out of low power mode
 
 b.write_byte_data(LGD, LGD_CTRL_1, 0x0F) #turn on gyro and set to normal mode
+b.write_byte_data(LGD, LGD_CTRL_4, 0b00110000) #set 2000 dps full scale
 
-DT = 0.5
+DT = 1
 PI = 3.14159265358979323846
 RAD_TO_DEG = 57.29578
 AA = 0.98
@@ -124,9 +125,9 @@ while True:
     gyroz = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_Z_MSB), b.read_byte_data(LGD, LGD_GYRO_Z_LSB))
     
     #print "Gyroscope (x, y, z):", gyrox, gyroy, gyroz
-    rate_gyrox = gyrox * 0.00875
-    rate_gyroy = gyroy * 0.00875
-    rate_gyroz = gyroz * 0.00875
+    rate_gyrox = gyrox * 0.07
+    rate_gyroy = gyroy * 0.07
+    rate_gyroz = gyroz * 0.07
     
     gyrox_angle+=rate_gyrox*DT;
     gyroy_angle+=rate_gyroy*DT;
@@ -139,5 +140,5 @@ while True:
     CFangy = AA*(CFangy+gyroy_angle) +(1 - AA) * accy_angle;
 
     print "Angle = ", CFangx, CFangy
-    while time.clock() <= now + 0.5:
+    while time.clock() <= now + 1:
         pass
