@@ -96,7 +96,7 @@ b.write_byte_data(LSM, CTRL_7, 0x00) #get magnetometer out of low power mode
 b.write_byte_data(LGD, LGD_CTRL_1, 0x0F) #turn on gyro and set to normal mode
 b.write_byte_data(LGD, LGD_CTRL_4, 0b00110000) #set 2000 dps full scale
 
-DT = 1
+DT = 0.001
 PI = 3.14159265358979323846
 RAD_TO_DEG = 57.29578
 AA = 0.98
@@ -136,9 +136,9 @@ while True:
     accx_angle = (math.atan2(accy,accz)+PI)*RAD_TO_DEG;
     accy_angle = (math.atan2(accz,accx)+PI)*RAD_TO_DEG;
     
-    CFangx = AA*(CFangx+gyrox_angle) +(1 - AA) * accx_angle;
-    CFangy = AA*(CFangy+gyroy_angle) +(1 - AA) * accy_angle;
+    CFangx = AA*(CFangx+rate_gyrox*DT) +(1 - AA) * accx_angle;
+    CFangy = AA*(CFangy+rate_gyroy*DT) +(1 - AA) * accy_angle;
 
     print "Angle = ", CFangx, CFangy
-    while time.clock() <= now + 1:
+    while (time.clock() <= now + 0.001):
         pass
