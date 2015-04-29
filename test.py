@@ -88,7 +88,7 @@ else:
     print 'No L3GD20H detected on bus on I2C bus '+str(busNum)+'.'
 
 b.write_byte_data(LSM, CTRL_1, 0b1100111) # enable accelerometer, 100 hz sampling
-b.write_byte_data(LSM, CTRL_2, 0b0001100) #set +- 8g full scale
+b.write_byte_data(LSM, CTRL_2, 0b0000000) #set +- 2g full scale page 36 datasheet
 b.write_byte_data(LSM, CTRL_5, 0b01100100) #high resolution mode, thermometer off, 6.25hz ODR
 b.write_byte_data(LSM, CTRL_6, 0b00100000) # set +- 4 gauss full scale
 b.write_byte_data(LSM, CTRL_7, 0x00) #get magnetometer out of low power mode
@@ -96,7 +96,7 @@ b.write_byte_data(LSM, CTRL_7, 0x00) #get magnetometer out of low power mode
 b.write_byte_data(LGD, LGD_CTRL_1, 0x0F) #turn on gyro and set to normal mode
 b.write_byte_data(LGD, LGD_CTRL_4, 0b00110000) #set 2000 dps full scale
 
-DT = 0.001
+DT = 0.01
 PI = 3.14159265358979323846
 RAD_TO_DEG = 57.29578
 AA = 0.98
@@ -117,8 +117,12 @@ while True:
     accx = twos_comp_combine(b.read_byte_data(LSM, ACC_X_MSB), b.read_byte_data(LSM, ACC_X_LSB))
     accy = twos_comp_combine(b.read_byte_data(LSM, ACC_Y_MSB), b.read_byte_data(LSM, ACC_Y_LSB))
     accz = twos_comp_combine(b.read_byte_data(LSM, ACC_Z_MSB), b.read_byte_data(LSM, ACC_Z_LSB))
+    accx = accx * 0.061 * 0.001
+    accy = accy * 0.061 * 0.001
+    accz = accz * 0.061 * 0.001 - 0.1
 
-    #print "Acceleration (x, y, z):", accx, accy, accz
+
+    print "Acceleration (x, y, z):", accx, accy, accz
 
     gyrox = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_X_MSB), b.read_byte_data(LGD, LGD_GYRO_X_LSB))
     gyroy = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_Y_MSB), b.read_byte_data(LGD, LGD_GYRO_Y_LSB))
@@ -129,16 +133,20 @@ while True:
     rate_gyroy = gyroy * 0.07
     rate_gyroz = gyroz * 0.07
     
-    gyrox_angle+=rate_gyrox*DT;
-    gyroy_angle+=rate_gyroy*DT;
+    gyrox_angle+=rate_gyrox*DT
+    gyroy_angle+=rate_gyroy*DT
     gyroz_angle+=rate_gyroz*DT;
     
-    accx_angle = (math.atan2(accy,accz)+PI)*RAD_TO_DEG;
-    accy_angle = (math.atan2(accz,accx)+PI)*RAD_TO_DEG;
+    #accx_angle = (math.atan2(accy,math.sqrt(accx*accx+accz*accz))+PI)*RAD_TO_DEG
+    accx_angle = (math.atan2(accy,accz))*RAD_TO_DEG
+    #accx_angle = (math.atan2(accy,accz)+PI)*RAD_TO_DEG
+    #accy_angle = (math.atan2(accx,math.sqrt(accy*accy+accz*accz))+PI)*RAD_TO_DEG
+    accy_angle = (math.atan2(-accx,accz))*RAD_TO_DEG
+    #accy_angle = (math.atan2(accz,accx)+PI)*RAD_TO_DEG
     
     CFangx = AA*(CFangx+rate_gyrox*DT) +(1 - AA) * accx_angle;
     CFangy = AA*(CFangy+rate_gyroy*DT) +(1 - AA) * accy_angle;
 
-    print "Angle = ", CFangx, CFangy
-    while (time.clock() <= now + 0.001):
+    print "Angle = ", accx_angle,accy_angle #CFangx, CFangy
+    while (time.clock() <= now + DT):
         pass
