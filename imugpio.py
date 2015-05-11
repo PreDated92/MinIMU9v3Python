@@ -1,4 +1,4 @@
-#Driver for the LSM303D accelerometer and magnetometercompass
+#Driver for the LSM303D accelerometer and L3GD20H magnetometer and compass
 
 #First follow the procedure to enable I2C on R-Pi.
 #1. Add the lines ic2-bcm2708 and i2c-dev to the file etcmodules
@@ -6,9 +6,8 @@
 #3. Install I2C utility (including smbus) with the command apt-get install python-smbus i2c-tools
 #4. Connect the I2C device and detect it using the command i2cdetect -y 1.  It should show up as 1D or 1E (here the variable LSM is set to 1D).
 
-#Driver by Fayetteville Free Library Robotics Group
-
 import time, math
+import wiringpi2 as wiringpi
 from smbus import SMBus
 busNum = 1
 b = SMBus(busNum)
@@ -96,6 +95,11 @@ b.write_byte_data(LSM, CTRL_7, 0x00) #get magnetometer out of low power mode
 b.write_byte_data(LGD, LGD_CTRL_1, 0x0F) #turn on gyro and set to normal mode
 b.write_byte_data(LGD, LGD_CTRL_4, 0b00110000) #set 2000 dps full scale
 
+wiringpi.wiringPiSetup()
+wiringpi.pinMode(0, 1) # sets WP pin 0 to output
+wiringpi.pinMode(1, 1) # sets WP pin 1 to output
+wiringpi.pinMode(4, 1) # sets WP pin 4 to output ;;2 for PWM mode
+
 DT = 0.01
 PI = 3.14159265358979323846
 RAD_TO_DEG = 57.29578
@@ -107,13 +111,11 @@ CFangx = 0.0
 CFangy = 0.0
 
 while True:
-    now = time.clock()
-    magx = twos_comp_combine(b.read_byte_data(LSM, MAG_X_MSB), b.read_byte_data(LSM, MAG_X_LSB))
-    magy = twos_comp_combine(b.read_byte_data(LSM, MAG_Y_MSB), b.read_byte_data(LSM, MAG_Y_LSB))
-    magz = twos_comp_combine(b.read_byte_data(LSM, MAG_Z_MSB), b.read_byte_data(LSM, MAG_Z_LSB))
-
+    now = time.clock() #use process time instead of wall time, change to wall time later
+    #magx = twos_comp_combine(b.read_byte_data(LSM, MAG_X_MSB), b.read_byte_data(LSM, MAG_X_LSB))
+    #magy = twos_comp_combine(b.read_byte_data(LSM, MAG_Y_MSB), b.read_byte_data(LSM, MAG_Y_LSB))
+    #magz = twos_comp_combine(b.read_byte_data(LSM, MAG_Z_MSB), b.read_byte_data(LSM, MAG_Z_LSB))
     #print "Magnetic field (x, y, z):", magx, magy, magz
-
     accx = twos_comp_combine(b.read_byte_data(LSM, ACC_X_MSB), b.read_byte_data(LSM, ACC_X_LSB))
     accy = twos_comp_combine(b.read_byte_data(LSM, ACC_Y_MSB), b.read_byte_data(LSM, ACC_Y_LSB))
     accz = twos_comp_combine(b.read_byte_data(LSM, ACC_Z_MSB), b.read_byte_data(LSM, ACC_Z_LSB))
@@ -121,32 +123,37 @@ while True:
     accy = accy * 0.061 * 0.001
     accz = accz * 0.061 * 0.001 - 0.1
 
-
     print "Acceleration (x, y, z):", accx, accy, accz
-
     gyrox = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_X_MSB), b.read_byte_data(LGD, LGD_GYRO_X_LSB))
     gyroy = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_Y_MSB), b.read_byte_data(LGD, LGD_GYRO_Y_LSB))
     gyroz = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_Z_MSB), b.read_byte_data(LGD, LGD_GYRO_Z_LSB))
-    
     #print "Gyroscope (x, y, z):", gyrox, gyroy, gyroz
     rate_gyrox = gyrox * 0.07
     rate_gyroy = gyroy * 0.07
     rate_gyroz = gyroz * 0.07
-    
     gyrox_angle+=rate_gyrox*DT
     gyroy_angle+=rate_gyroy*DT
-    gyroz_angle+=rate_gyroz*DT;
+    gyroz_angle+=rate_gyroz*DT
     
     #accx_angle = (math.atan2(accy,math.sqrt(accx*accx+accz*accz))+PI)*RAD_TO_DEG
     accx_angle = (math.atan2(accy,accz))*RAD_TO_DEG
     #accx_angle = (math.atan2(accy,accz)+PI)*RAD_TO_DEG
     #accy_angle = (math.atan2(accx,math.sqrt(accy*accy+accz*accz))+PI)*RAD_TO_DEG
     accy_angle = (math.atan2(-accx,accz))*RAD_TO_DEG
-    #accy_angle = (math.atan2(accz,accx)+PI)*RAD_TO_DEG
     
-    CFangx = AA*(CFangx+rate_gyrox*DT) +(1 - AA) * accx_angle;
-    CFangy = AA*(CFangy+rate_gyroy*DT) +(1 - AA) * accy_angle;
+    CFangx = AA*(CFangx+rate_gyrox*DT) +(1 - AA) * accx_angle
+    #CFangy = AA*(CFangy+rate_gyroy*DT) +(1 - AA) * accy_angle
 
     print "Angle = ", CFangx, CFangy # accx_angle,accy_angle #
+    
+    if (CFangx < 0) :
+        wiringpi.digitalWrite(0, 1)
+        wiringpi.digitalWrite(1, 0)
+        wiringpi.digitalWrite(4, 1)
+    else :
+        wiringpi.digitalWrite(0, 1)
+        wiringpi.digitalWrite(1, 1)
+        wiringpi.digitalWrite(4, 0)
+        
     while (time.clock() <= now + DT):
         pass
