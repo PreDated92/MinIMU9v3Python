@@ -12,6 +12,71 @@ from smbus import SMBus
 busNum = 1
 b = SMBus(busNum)
 
+class PID:
+        """ Simple PID control.
+
+            This class implements a simplistic PID control algorithm. When first
+            instantiated all the gain variables are set to zero, so calling
+            the method GenOut will just return zero.
+        """
+        def __init__(self):
+            # initialize gains
+            self.Kp = 0
+            self.Kd = 0
+            self.Ki = 0
+            self.Initialize()
+
+        def SetKp(self, invar):
+            """ Set proportional gain. """
+            self.Kp = invar
+
+        def SetKi(self, invar):
+            """ Set integral gain. """
+            self.Ki = invar
+
+        def SetKd(self, invar):
+            """ Set derivative gain. """
+            self.Kd = invar
+
+        def SetPrevErr(self, preverr):
+            """ Set previous error value. """
+            self.prev_err = preverr
+
+        def Initialize(self):
+            # initialize delta t variables
+            self.currtm = time.time()
+            self.prevtm = self.currtm
+
+            self.prev_err = 0
+
+            # term result variables
+            self.Cp = 0
+            self.Ci = 0
+            self.Cd = 0
+
+
+        def GenOut(self, error):
+            """ Performs a PID computation and returns a control value based on
+                the elapsed time (dt) and the error signal from a summing junction
+                (the error parameter).
+            """
+            self.currtm = time.time()               # get t
+            dt = self.currtm - self.prevtm          # get delta t
+            de = error - self.prev_err              # get delta error
+
+            self.Cp = self.Kp * error               # proportional term
+            self.Ci += error * dt                   # integral term
+
+            self.Cd = 0
+            if dt > 0:                              # no div by zero
+                self.Cd = de/dt                     # derivative term
+
+            self.prevtm = self.currtm               # save t for next pass
+            self.prev_err = error                   # save t-1 error
+
+            # sum the terms and return the result
+            return self.Cp + (self.Ki * self.Ci) + (self.Kd * self.Cd)
+
 def twos_comp_combine(msb, lsb):
     twos_comp = 256*msb + lsb
     if twos_comp >= 32768:
@@ -110,8 +175,14 @@ gyroz_angle = 0.0
 CFangx = 0.0
 CFangy = 0.0
 
+pid = PID()
+pid.SetKp(1)
+pid.SetKi(1)
+pid.SetKd(1)
+setpoint = 0
+
 while True:
-    now = time.clock() #use process time instead of wall time, change to wall time later
+    now = time.time() #use process time instead of wall time, change to wall time later
     #magx = twos_comp_combine(b.read_byte_data(LSM, MAG_X_MSB), b.read_byte_data(LSM, MAG_X_LSB))
     #magy = twos_comp_combine(b.read_byte_data(LSM, MAG_Y_MSB), b.read_byte_data(LSM, MAG_Y_LSB))
     #magz = twos_comp_combine(b.read_byte_data(LSM, MAG_Z_MSB), b.read_byte_data(LSM, MAG_Z_LSB))
@@ -134,26 +205,36 @@ while True:
     gyrox_angle+=rate_gyrox*DT
     gyroy_angle+=rate_gyroy*DT
     gyroz_angle+=rate_gyroz*DT
-    
-    #accx_angle = (math.atan2(accy,math.sqrt(accx*accx+accz*accz))+PI)*RAD_TO_DEG
+        
     accx_angle = (math.atan2(accy,accz))*RAD_TO_DEG
-    #accx_angle = (math.atan2(accy,accz)+PI)*RAD_TO_DEG
-    #accy_angle = (math.atan2(accx,math.sqrt(accy*accy+accz*accz))+PI)*RAD_TO_DEG
     accy_angle = (math.atan2(-accx,accz))*RAD_TO_DEG
+    
+    """ The following code does not have problems with regions of instability but consumes a lot of processing power
+    #accx_angle = (math.atan2(accy,math.sqrt(accx*accx+accz*accz))+PI)*RAD_TO_DEG
+    #accy_angle = (math.atan2(accx,math.sqrt(accy*accy+accz*accz))+PI)*RAD_TO_DEG
+    """
+    
     
     CFangx = AA*(CFangx+rate_gyrox*DT) +(1 - AA) * accx_angle
     #CFangy = AA*(CFangy+rate_gyroy*DT) +(1 - AA) * accy_angle
 
     print "Angle = ", CFangx, CFangy # accx_angle,accy_angle #
     
+    error = setpoint - CFangx
+    output = pid.GenOut(error)
+    
+    print "output = ", output
+
+    
+    '''
     if (CFangx < 0) :
-        wiringpi.digitalWrite(0, 1)
-        wiringpi.digitalWrite(1, 0)
-        wiringpi.digitalWrite(4, 1)
+        wiringpi.digitalWrite(0, 1) #enable pin A
+        wiringpi.digitalWrite(1, 1) #In1 High
+        wiringpi.digitalWrite(4, 0) #In2 Low
     else :
-        wiringpi.digitalWrite(0, 1)
-        wiringpi.digitalWrite(1, 1)
-        wiringpi.digitalWrite(4, 0)
-        
+        wiringpi.digitalWrite(0, 1) #enable pin A
+        wiringpi.digitalWrite(1, 0) #In1 Low
+        wiringpi.digitalWrite(4, 1) #in2 High
+    '''
     while (time.clock() <= now + DT):
         pass
