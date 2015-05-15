@@ -239,21 +239,21 @@ while True:
     
     print "output = ", output
     if (output < 0) :
-        wiringpi.digitalWrite(3, 1) #In1 High
-        wiringpi.digitalWrite(4, 0) #In2 Low
-        wiringpi.digitalWrite(5, 1) #In3 High
-        wiringpi.digitalWrite(6, 0) #In4 Low
+        wiringpi.digitalWrite(3, 0) #In1 High
+        wiringpi.digitalWrite(4, 1) #In2 Low
+        wiringpi.digitalWrite(5, 1) #In3 Low
+        wiringpi.digitalWrite(6, 0) #In4 High
         output = -output
     else :
-        wiringpi.digitalWrite(3, 0) #In1 Low
-        wiringpi.digitalWrite(4, 1) #in2 High
-        wiringpi.digitalWrite(5, 0) #In3 Low
-        wiringpi.digitalWrite(6, 1) #In4 High
+        wiringpi.digitalWrite(3, 1) #In1 Low
+        wiringpi.digitalWrite(4, 0) #in2 High
+        wiringpi.digitalWrite(5, 0) #In3 High
+        wiringpi.digitalWrite(6, 1) #In4 Low
     
     pwmout = translate(output,0,50,0,1024)
     if (pwmout > 1024) :
         pwmout = 1024
-    wiringpi.pwmWrite(1,pwmout)
+    wiringpi.pwmWrite(1,int(pwmout))
     
     '''
     if (output < 0) :
