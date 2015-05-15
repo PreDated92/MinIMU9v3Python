@@ -84,7 +84,18 @@ def twos_comp_combine(msb, lsb):
     else:
         return twos_comp
 
-## LSM303D Registers
+def translate(value, PIDMin, PIDMax, PWMMin, PWMMax):
+    # Figure out how 'wide' each range is
+    PIDSpan = PIDMax - PIDMin
+    PWMSpan = PWMMax - PWMMin
+    
+    # Convert the PID output range into a 0-1 range in float casting
+    valueScaled = float(value - PIDMin) / float(PIDSpan)
+    
+    # Convert the 0-1 range into a value in the PWM range.
+    return PWMMin + (valueScaled * PWMSpan)
+
+# LSM303D Registers
 LSM = 0x1d #I2C Address of the LSM303D
 LSM_WHOAMI_ID = 0b1001001 #Device self-id
 LSM_WHOAMI_ADDRESS = 0x0F
@@ -161,9 +172,12 @@ b.write_byte_data(LGD, LGD_CTRL_1, 0x0F) #turn on gyro and set to normal mode
 b.write_byte_data(LGD, LGD_CTRL_4, 0b00110000) #set 2000 dps full scale
 
 wiringpi.wiringPiSetup()
-wiringpi.pinMode(0, 1) # sets WP pin 0 to output
-wiringpi.pinMode(1, 1) # sets WP pin 1 to output
-wiringpi.pinMode(4, 1) # sets WP pin 4 to output ;;2 for PWM mode
+wiringpi.pinMode(1, 2) # sets WP pin 1 to PWM
+wiringpi.pwmWrite(1, 0)# duty cycle between 0 and 1024. 0 = off, 1024 = fully on 
+wiringpi.pinMode(3, 1) # sets WP pin 3 to output
+wiringpi.pinMode(4, 1) # sets WP pin 4 to output
+wiringpi.pinMode(5, 1) # sets WP pin 5 to output
+wiringpi.pinMode(6, 1) # sets WP pin 6 to output
 
 DT = 0.01
 PI = 3.14159265358979323846
@@ -182,7 +196,7 @@ pid.SetKd(1)
 setpoint = 0
 
 while True:
-    now = time.time() #use process time instead of wall time, change to wall time later
+    now = time.time() #use wall time instead of process time
     #magx = twos_comp_combine(b.read_byte_data(LSM, MAG_X_MSB), b.read_byte_data(LSM, MAG_X_LSB))
     #magy = twos_comp_combine(b.read_byte_data(LSM, MAG_Y_MSB), b.read_byte_data(LSM, MAG_Y_LSB))
     #magz = twos_comp_combine(b.read_byte_data(LSM, MAG_Z_MSB), b.read_byte_data(LSM, MAG_Z_LSB))
@@ -192,7 +206,7 @@ while True:
     accz = twos_comp_combine(b.read_byte_data(LSM, ACC_Z_MSB), b.read_byte_data(LSM, ACC_Z_LSB))
     accx = accx * 0.061 * 0.001
     accy = accy * 0.061 * 0.001
-    accz = accz * 0.061 * 0.001 - 0.1
+    accz = accz * 0.061 * 0.001 - 0.1 # the reading has offset, correction of 0.1 needed
 
     print "Acceleration (x, y, z):", accx, accy, accz
     gyrox = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_X_MSB), b.read_byte_data(LGD, LGD_GYRO_X_LSB))
@@ -224,11 +238,26 @@ while True:
     output = pid.GenOut(error)
     
     print "output = ", output
-
+    if (output < 0) :
+        wiringpi.digitalWrite(3, 1) #In1 High
+        wiringpi.digitalWrite(4, 0) #In2 Low
+        wiringpi.digitalWrite(5, 1) #In3 High
+        wiringpi.digitalWrite(6, 0) #In4 Low
+        output = -output
+    else :
+        wiringpi.digitalWrite(3, 0) #In1 Low
+        wiringpi.digitalWrite(4, 1) #in2 High
+        wiringpi.digitalWrite(5, 0) #In3 Low
+        wiringpi.digitalWrite(6, 1) #In4 High
+    
+    pwmout = translate(output,0,50,0,1024)
+    if (pwmout > 1024) :
+        pwmout = 1024
+    wiringpi.pwmWrite(1,pwmout)
     
     '''
-    if (CFangx < 0) :
-        wiringpi.digitalWrite(0, 1) #enable pin A
+    if (output < 0) :
+        wiringpi.digitalWrite(3, 1) #enable pin A
         wiringpi.digitalWrite(1, 1) #In1 High
         wiringpi.digitalWrite(4, 0) #In2 Low
     else :
@@ -236,5 +265,5 @@ while True:
         wiringpi.digitalWrite(1, 0) #In1 Low
         wiringpi.digitalWrite(4, 1) #in2 High
     '''
-    while (time.clock() <= now + DT):
+    while (time.time() <= now + DT):
         pass
