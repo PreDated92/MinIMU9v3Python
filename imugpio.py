@@ -179,7 +179,7 @@ wiringpi.pinMode(4, 1) # sets WP pin 4 to output
 wiringpi.pinMode(5, 1) # sets WP pin 5 to output
 wiringpi.pinMode(6, 1) # sets WP pin 6 to output
 
-DT = 0.01
+DT = 0.1
 PI = 3.14159265358979323846
 RAD_TO_DEG = 57.29578
 AA = 0.98
@@ -241,20 +241,20 @@ while True:
     if (output < 0) :
         wiringpi.digitalWrite(3, 0) #In1 High
         wiringpi.digitalWrite(4, 1) #In2 Low
-        wiringpi.digitalWrite(5, 1) #In3 Low
-        wiringpi.digitalWrite(6, 0) #In4 High
+        # wiringpi.digitalWrite(5, 1) #In3 Low
+        # wiringpi.digitalWrite(6, 0) #In4 High
         output = -output
     else :
         wiringpi.digitalWrite(3, 1) #In1 Low
         wiringpi.digitalWrite(4, 0) #in2 High
-        wiringpi.digitalWrite(5, 0) #In3 High
-        wiringpi.digitalWrite(6, 1) #In4 Low
+        # wiringpi.digitalWrite(5, 0) #In3 High
+        # wiringpi.digitalWrite(6, 1) #In4 Low
     
     pwmout = translate(output,0,50,0,1024)
     if (pwmout > 1024) :
         pwmout = 1024
     wiringpi.pwmWrite(1,int(pwmout))
-    
+    print "pwmout = ", pwmout
     '''
     if (output < 0) :
         wiringpi.digitalWrite(3, 1) #enable pin A
