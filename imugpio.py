@@ -1,6 +1,6 @@
 Kp=1
-Ki=0.5
-Kd=1
+Ki=0
+Kd=0
 DT = 0.02
 #Best values
 '''
@@ -18,7 +18,7 @@ import time, math
 import wiringpi2 as wiringpi
 from smbus import SMBus
 busNum = 1
-b = SMBus(busNum)
+bus = SMBus(busNum)
 
 class PID:
         """ Simple PID control.
@@ -85,12 +85,12 @@ class PID:
             # sum the terms and return the result
             return self.Cp + (self.Ki * self.Ci) + (self.Kd * self.Cd)
 
-def twos_comp_combine(msb, lsb):
-    twos_comp = 256*msb + lsb
-    if twos_comp >= 32768:
-        return twos_comp - 65536
+def convert(msb, lsb):
+    value = 256*msb + lsb
+    if value >= 32768:
+        return value - 65536
     else:
-        return twos_comp
+        return value
 
 def translate(value, PIDMin, PIDMax, PWMMin, PWMMax):
     # Figure out how 'wide' each range is
@@ -161,23 +161,23 @@ LGD_GYRO_Y_MSB = 0x2B
 LGD_GYRO_Z_LSB = 0x2C
 LGD_GYRO_Z_MSB = 0x2D
 
-if b.read_byte_data(LSM, LSM_WHOAMI_ADDRESS) == LSM_WHOAMI_ID:
+if bus.read_byte_data(LSM, LSM_WHOAMI_ADDRESS) == LSM_WHOAMI_ID:
     print 'LSM303D detected successfully.'
 else:
     print 'No LSM303D detected on bus '+str(busNum)+'.'
-if b.read_byte_data(LGD, LGD_WHOAMI_ADDRESS) == LGD_WHOAMI_ID:
+if bus.read_byte_data(LGD, LGD_WHOAMI_ADDRESS) == LGD_WHOAMI_ID:
     print 'L3GD20H detected successfully.'
 else:
     print 'No L3GD20H detected on bus on I2C bus '+str(busNum)+'.'
 
-b.write_byte_data(LSM, CTRL_1, 0b1100111) # enable accelerometer, 100 hz sampling
-b.write_byte_data(LSM, CTRL_2, 0b0000000) #set +- 2g full scale page 36 datasheet
-b.write_byte_data(LSM, CTRL_5, 0b01100100) #high resolution mode, thermometer off, 6.25hz ODR
-b.write_byte_data(LSM, CTRL_6, 0b00100000) # set +- 4 gauss full scale
-b.write_byte_data(LSM, CTRL_7, 0x00) #get magnetometer out of low power mode
+bus.write_byte_data(LSM, CTRL_1, 0b1100111) # enable accelerometer, 100 hz sampling
+bus.write_byte_data(LSM, CTRL_2, 0b0000000) #set +- 2g full scale page 36 datasheet
+bus.write_byte_data(LSM, CTRL_5, 0b01100100) #high resolution mode, thermometer off, 6.25hz ODR
+bus.write_byte_data(LSM, CTRL_6, 0b00100000) # set +- 4 gauss full scale
+bus.write_byte_data(LSM, CTRL_7, 0x00) #get magnetometer out of low power mode
 
-b.write_byte_data(LGD, LGD_CTRL_1, 0x0F) #turn on gyro and set to normal mode
-b.write_byte_data(LGD, LGD_CTRL_4, 0b00110000) #set 2000 dps full scale
+bus.write_byte_data(LGD, LGD_CTRL_1, 0x0F) #turn on gyro and set to normal mode
+bus.write_byte_data(LGD, LGD_CTRL_4, 0b00110000) #set 2000 dps full scale
 
 wiringpi.wiringPiSetup()
 wiringpi.pinMode(1, 2) # sets WP pin 1 to PWM
@@ -210,21 +210,21 @@ fo.write("Kd = " + str(Kd) + "\n")
 
 while True:
     now = time.time() #use wall time instead of process time
-    #magx = twos_comp_combine(b.read_byte_data(LSM, MAG_X_MSB), b.read_byte_data(LSM, MAG_X_LSB))
-    #magy = twos_comp_combine(b.read_byte_data(LSM, MAG_Y_MSB), b.read_byte_data(LSM, MAG_Y_LSB))
-    #magz = twos_comp_combine(b.read_byte_data(LSM, MAG_Z_MSB), b.read_byte_data(LSM, MAG_Z_LSB))
+    #magx = convert(bus.read_byte_data(LSM, MAG_X_MSB), bus.read_byte_data(LSM, MAG_X_LSB))
+    #magy = convert(bus.read_byte_data(LSM, MAG_Y_MSB), bus.read_byte_data(LSM, MAG_Y_LSB))
+    #magz = convert(bus.read_byte_data(LSM, MAG_Z_MSB), bus.read_byte_data(LSM, MAG_Z_LSB))
     #print "Magnetic field (x, y, z):", magx, magy, magz
-    accx = twos_comp_combine(b.read_byte_data(LSM, ACC_X_MSB), b.read_byte_data(LSM, ACC_X_LSB))
-    accy = twos_comp_combine(b.read_byte_data(LSM, ACC_Y_MSB), b.read_byte_data(LSM, ACC_Y_LSB))
-    accz = twos_comp_combine(b.read_byte_data(LSM, ACC_Z_MSB), b.read_byte_data(LSM, ACC_Z_LSB))
+    accx = convert(bus.read_byte_data(LSM, ACC_X_MSB), bus.read_byte_data(LSM, ACC_X_LSB))
+    accy = convert(bus.read_byte_data(LSM, ACC_Y_MSB), bus.read_byte_data(LSM, ACC_Y_LSB))
+    accz = convert(bus.read_byte_data(LSM, ACC_Z_MSB), bus.read_byte_data(LSM, ACC_Z_LSB))
     accx = accx * 0.061 * 0.001
     accy = accy * 0.061 * 0.001
     accz = accz * 0.061 * 0.001 - 0.1 # the reading has offset, correction of 0.1 needed
 
     #print "Acceleration (x, y, z):", accx, accy, accz
-    gyrox = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_X_MSB), b.read_byte_data(LGD, LGD_GYRO_X_LSB))
-    gyroy = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_Y_MSB), b.read_byte_data(LGD, LGD_GYRO_Y_LSB))
-    gyroz = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_Z_MSB), b.read_byte_data(LGD, LGD_GYRO_Z_LSB))
+    gyrox = convert(bus.read_byte_data(LGD, LGD_GYRO_X_MSB), bus.read_byte_data(LGD, LGD_GYRO_X_LSB))
+    gyroy = convert(bus.read_byte_data(LGD, LGD_GYRO_Y_MSB), bus.read_byte_data(LGD, LGD_GYRO_Y_LSB))
+    gyroz = convert(bus.read_byte_data(LGD, LGD_GYRO_Z_MSB), bus.read_byte_data(LGD, LGD_GYRO_Z_LSB))
     #print "Gyroscope (x, y, z):", gyrox, gyroy, gyroz
     rate_gyrox = gyrox * 0.07
     rate_gyroy = gyroy * 0.07
@@ -267,7 +267,7 @@ while True:
     if (pwmout > 1024) :
         pwmout = 1024
     wiringpi.pwmWrite(1,int(pwmout))
-    fo.write(str(angle))
+    fo.write(str(CFangx))
     #print "pwmout = ", pwmout
     '''
     if (output < 0) 
