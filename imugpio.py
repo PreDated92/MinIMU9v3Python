@@ -1,4 +1,4 @@
-Kp=1
+Kp=3
 Ki=0
 Kd=0
 DT = 0.02
@@ -250,7 +250,7 @@ while True:
     error = setpoint - CFangx
     output = pid.GenOut(error)
     
-    #print "output = ", output
+    print "output = ", output
     if (CFangx > 10) : #CFangx or output??
         wiringpi.digitalWrite(3, 0) #In1 High
         wiringpi.digitalWrite(4, 1) #In2 Low
@@ -263,12 +263,12 @@ while True:
         # wiringpi.digitalWrite(6, 1) #In4 Low
     if (output < 0) :
         output = -output
-    pwmout = translate(output,0,100,500,1024)
+    pwmout = translate(output,0,50,550,1024)
     if (pwmout > 1024) :
         pwmout = 1024
     wiringpi.pwmWrite(1,int(pwmout))
     fo.write(str(CFangx)+"\n")
-    #print "pwmout = ", pwmout
+    print "pwmout = ", pwmout
     '''
     if (output < 0) 
         wiringpi.digitalWrite(3, 1) #enable pin A
@@ -279,6 +279,6 @@ while True:
         wiringpi.digitalWrite(1, 0) #In1 Low
         wiringpi.digitalWrite(4, 1) #in2 High
     '''
-    #print "time = ", time.time()-now
+    print "time = ", time.time()-now
     while (time.time() <= now + DT):
         pass
