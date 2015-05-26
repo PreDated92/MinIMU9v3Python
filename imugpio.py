@@ -267,7 +267,7 @@ while True:
     if (pwmout > 1024) :
         pwmout = 1024
     wiringpi.pwmWrite(1,int(pwmout))
-    fo.write(str(CFangx))
+    fo.write(str(CFangx)+"\n")
     #print "pwmout = ", pwmout
     '''
     if (output < 0) 
