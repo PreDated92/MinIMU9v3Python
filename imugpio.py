@@ -1,3 +1,11 @@
+Kp=1
+Ki=0.5
+Kd=1
+DT = 0.02
+#Best values
+'''
+1,0.5,1
+'''
 #Driver for the LSM303D accelerometer and L3GD20H magnetometer and compass
 
 #First follow the procedure to enable I2C on R-Pi.
@@ -179,7 +187,6 @@ wiringpi.pinMode(4, 1) # sets WP pin 4 to output
 wiringpi.pinMode(5, 1) # sets WP pin 5 to output
 wiringpi.pinMode(6, 1) # sets WP pin 6 to output
 
-DT = 0.1
 PI = 3.14159265358979323846
 RAD_TO_DEG = 57.29578
 AA = 0.98
@@ -190,10 +197,16 @@ CFangx = 0.0
 CFangy = 0.0
 
 pid = PID()
-pid.SetKp(1)
-pid.SetKi(1)
-pid.SetKd(1)
+pid.SetKp(Kp)
+pid.SetKi(Ki)
+pid.SetKd(Kd)
 setpoint = 0
+
+fo = open("pid.csv","w")
+fo.write("Kp = " + str(Kp) + "\n")
+fo.write("Ki = " + str(Ki) + "\n")
+fo.write("Kd = " + str(Kd) + "\n")
+
 
 while True:
     now = time.time() #use wall time instead of process time
@@ -208,7 +221,7 @@ while True:
     accy = accy * 0.061 * 0.001
     accz = accz * 0.061 * 0.001 - 0.1 # the reading has offset, correction of 0.1 needed
 
-    print "Acceleration (x, y, z):", accx, accy, accz
+    #print "Acceleration (x, y, z):", accx, accy, accz
     gyrox = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_X_MSB), b.read_byte_data(LGD, LGD_GYRO_X_LSB))
     gyroy = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_Y_MSB), b.read_byte_data(LGD, LGD_GYRO_Y_LSB))
     gyroz = twos_comp_combine(b.read_byte_data(LGD, LGD_GYRO_Z_MSB), b.read_byte_data(LGD, LGD_GYRO_Z_LSB))
@@ -221,7 +234,7 @@ while True:
     gyroz_angle+=rate_gyroz*DT
         
     accx_angle = (math.atan2(accy,accz))*RAD_TO_DEG
-    accy_angle = (math.atan2(-accx,accz))*RAD_TO_DEG
+    #accy_angle = (math.atan2(-accx,accz))*RAD_TO_DEG
     
     """ The following code does not have problems with regions of instability but consumes a lot of processing power
     #accx_angle = (math.atan2(accy,math.sqrt(accx*accx+accz*accz))+PI)*RAD_TO_DEG
@@ -232,38 +245,40 @@ while True:
     CFangx = AA*(CFangx+rate_gyrox*DT) +(1 - AA) * accx_angle
     #CFangy = AA*(CFangy+rate_gyroy*DT) +(1 - AA) * accy_angle
 
-    print "Angle = ", CFangx, CFangy # accx_angle,accy_angle #
+    print "Angle = ", CFangx #, CFangy # accx_angle,accy_angle #
     
     error = setpoint - CFangx
     output = pid.GenOut(error)
     
-    print "output = ", output
-    if (output < 0) :
+    #print "output = ", output
+    if (CFangx > 10) : #CFangx or output??
         wiringpi.digitalWrite(3, 0) #In1 High
         wiringpi.digitalWrite(4, 1) #In2 Low
         # wiringpi.digitalWrite(5, 1) #In3 Low
         # wiringpi.digitalWrite(6, 0) #In4 High
-        output = -output
     else :
         wiringpi.digitalWrite(3, 1) #In1 Low
         wiringpi.digitalWrite(4, 0) #in2 High
         # wiringpi.digitalWrite(5, 0) #In3 High
         # wiringpi.digitalWrite(6, 1) #In4 Low
-    
-    pwmout = translate(output,0,50,0,1024)
+    if (output < 0) :
+        output = -output
+    pwmout = translate(output,0,100,500,1024)
     if (pwmout > 1024) :
         pwmout = 1024
     wiringpi.pwmWrite(1,int(pwmout))
-    print "pwmout = ", pwmout
+    fo.write(str(angle))
+    #print "pwmout = ", pwmout
     '''
-    if (output < 0) :
+    if (output < 0) 
         wiringpi.digitalWrite(3, 1) #enable pin A
         wiringpi.digitalWrite(1, 1) #In1 High
         wiringpi.digitalWrite(4, 0) #In2 Low
     else :
-        wiringpi.digitalWrite(0, 1) #enable pin A
+        wiringpi.digitalWrite(0, 1) #enable pin 
         wiringpi.digitalWrite(1, 0) #In1 Low
         wiringpi.digitalWrite(4, 1) #in2 High
     '''
+    #print "time = ", time.time()-now
     while (time.time() <= now + DT):
         pass
