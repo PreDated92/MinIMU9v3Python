@@ -1,3 +1,4 @@
+setpoint = 10
 Kp=3
 Ki=0
 Kd=0
@@ -200,7 +201,6 @@ pid = PID()
 pid.SetKp(Kp)
 pid.SetKi(Ki)
 pid.SetKd(Kd)
-setpoint = 0
 
 fo = open("pid.csv","w")
 fo.write("Kp = " + str(Kp) + "\n")
@@ -217,21 +217,24 @@ while True:
     accx = convert(bus.read_byte_data(LSM, ACC_X_MSB), bus.read_byte_data(LSM, ACC_X_LSB))
     accy = convert(bus.read_byte_data(LSM, ACC_Y_MSB), bus.read_byte_data(LSM, ACC_Y_LSB))
     accz = convert(bus.read_byte_data(LSM, ACC_Z_MSB), bus.read_byte_data(LSM, ACC_Z_LSB))
-    accx = accx * 0.061 * 0.001
-    accy = accy * 0.061 * 0.001
-    accz = accz * 0.061 * 0.001 - 0.1 # the reading has offset, correction of 0.1 needed
+    accx = accx * 0.061 * 0.001 +0.06
+    accy = accy * 0.061 * 0.001 -0.02
+    accz = accz * 0.061 * 0.001 -0.08# the reading has offset, correction of 0.1 needed
 
     #print "Acceleration (x, y, z):", accx, accy, accz
     gyrox = convert(bus.read_byte_data(LGD, LGD_GYRO_X_MSB), bus.read_byte_data(LGD, LGD_GYRO_X_LSB))
     gyroy = convert(bus.read_byte_data(LGD, LGD_GYRO_Y_MSB), bus.read_byte_data(LGD, LGD_GYRO_Y_LSB))
     gyroz = convert(bus.read_byte_data(LGD, LGD_GYRO_Z_MSB), bus.read_byte_data(LGD, LGD_GYRO_Z_LSB))
-    #print "Gyroscope (x, y, z):", gyrox, gyroy, gyroz
     rate_gyrox = gyrox * 0.07
     rate_gyroy = gyroy * 0.07
     rate_gyroz = gyroz * 0.07
     gyrox_angle+=rate_gyrox*DT
     gyroy_angle+=rate_gyroy*DT
     gyroz_angle+=rate_gyroz*DT
+    #gyx = rate_gyrox*DT
+    #gyy = rate_gyroy*DT
+    #gyz = rate_gyroz*DT
+    #print "Gyroscope (x, y, z):", gyx, gyy, gyz
         
     accx_angle = (math.atan2(accy,accz))*RAD_TO_DEG
     #accy_angle = (math.atan2(-accx,accz))*RAD_TO_DEG
@@ -240,18 +243,18 @@ while True:
     #accx_angle = (math.atan2(accy,math.sqrt(accx*accx+accz*accz))+PI)*RAD_TO_DEG
     #accy_angle = (math.atan2(accx,math.sqrt(accy*accy+accz*accz))+PI)*RAD_TO_DEG
     """
-    
+    #print "Accelerometer Angle = ", accx_angle
     
     CFangx = AA*(CFangx+rate_gyrox*DT) +(1 - AA) * accx_angle
     #CFangy = AA*(CFangy+rate_gyroy*DT) +(1 - AA) * accy_angle
 
-    print "Angle = ", CFangx #, CFangy # accx_angle,accy_angle #
+    #print "Filtered Angle = ", CFangx #, CFangy # accx_angle,accy_angle #
     
     error = setpoint - CFangx
     output = pid.GenOut(error)
     
-    print "output = ", output
-    if (CFangx > 10) : #CFangx or output??
+    #print "output = ", output
+    if (output < 0) : #CFangx or output??
         wiringpi.digitalWrite(3, 0) #In1 High
         wiringpi.digitalWrite(4, 1) #In2 Low
         # wiringpi.digitalWrite(5, 1) #In3 Low
@@ -262,13 +265,15 @@ while True:
         # wiringpi.digitalWrite(5, 0) #In3 High
         # wiringpi.digitalWrite(6, 1) #In4 Low
     if (output < 0) :
-        output = -output
-    pwmout = translate(output,0,50,550,1024)
+        posoutput = -output
+    else :
+        posoutput = output
+    pwmout = translate(posoutput,0,50,550,1024)
     if (pwmout > 1024) :
         pwmout = 1024
     wiringpi.pwmWrite(1,int(pwmout))
-    fo.write(str(CFangx)+"\n")
-    print "pwmout = ", pwmout
+    fo.write(str(CFangx)+","+str(output)+"\n")
+    #print "pwmout = ", pwmout
     '''
     if (output < 0) 
         wiringpi.digitalWrite(3, 1) #enable pin A
@@ -279,6 +284,6 @@ while True:
         wiringpi.digitalWrite(1, 0) #In1 Low
         wiringpi.digitalWrite(4, 1) #in2 High
     '''
-    print "time = ", time.time()-now
+    #print "time = ", time.time()-now
     while (time.time() <= now + DT):
         pass
