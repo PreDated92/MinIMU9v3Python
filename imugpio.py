@@ -1,5 +1,5 @@
-setpoint = 10
-Kp=3
+setpoint = 3
+Kp=5
 Ki=0
 Kd=0
 DT = 0.02
