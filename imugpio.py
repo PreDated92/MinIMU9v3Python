@@ -1,11 +1,11 @@
-setpoint = 3
-Kp=5
-Ki=0
-Kd=0
+setpoint = 3.
+Kp=10
+Ki=5
+Kd=0.222
 DT = 0.02
 #Best values
 '''
-1,0.5,1
+10,5,0.22
 '''
 #Driver for the LSM303D accelerometer and L3GD20H magnetometer and compass
 
@@ -268,7 +268,7 @@ while True:
         posoutput = -output
     else :
         posoutput = output
-    pwmout = translate(posoutput,0,50,550,1024)
+    pwmout = translate(posoutput,0,50,900,1024)
     if (pwmout > 1024) :
         pwmout = 1024
     wiringpi.pwmWrite(1,int(pwmout))
