@@ -1,7 +1,7 @@
 setpoint = 11
 Kp=5
-Ki=1.5
-Kd=0.2
+Ki=1.8
+Kd=0.3
 DT = 0.02
 #Best values
 '''
@@ -248,12 +248,12 @@ while True:
     CFangx = AA*(CFangx+rate_gyrox*DT) +(1 - AA) * accx_angle
     #CFangy = AA*(CFangy+rate_gyroy*DT) +(1 - AA) * accy_angle
 
-    #print "Filtered Angle = ", CFangx #, CFangy # accx_angle,accy_angle #
+    print "Filtered Angle = ", CFangx #, CFangy # accx_angle,accy_angle #
     
     error = setpoint - CFangx
     output = pid.GenOut(error)
     
-    #print "output = ", output
+    print "output = ", output
     if (output < 0) : #CFangx or output??
         wiringpi.digitalWrite(3, 0) #In1 High
         wiringpi.digitalWrite(4, 1) #In2 Low
