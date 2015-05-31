@@ -1,6 +1,6 @@
 setpoint = 11
 Kp=5
-Ki=1
+Ki=2
 Kd=0
 DT = 0.02
 #Best values
