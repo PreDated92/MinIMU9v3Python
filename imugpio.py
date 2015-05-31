@@ -1,5 +1,5 @@
 setpoint = 13
-Kp=5
+Kp=3
 Ki=0
 Kd=0
 DT = 0.02
@@ -203,9 +203,9 @@ pid.SetKi(Ki)
 pid.SetKd(Kd)
 
 fo = open("pid.csv","w")
-fo.write("Kp = " + str(Kp) + "\n")
-fo.write("Ki = " + str(Ki) + "\n")
-fo.write("Kd = " + str(Kd) + "\n")
+fo.write(  str(Kp) + "\n")
+fo.write(  str(Ki) + "\n")
+fo.write(  str(Kd) + "\n")
 
 
 while True:
