@@ -1,6 +1,6 @@
-setpoint = 13
-Kp=7
-Ki=0
+setpoint = 11
+Kp=5
+Ki=1
 Kd=0
 DT = 0.02
 #Best values
