@@ -1,5 +1,5 @@
 setpoint = 13
-Kp=6
+Kp=7
 Ki=0
 Kd=0
 DT = 0.02
