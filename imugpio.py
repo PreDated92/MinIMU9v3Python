@@ -1,7 +1,7 @@
-setpoint = 3.
-Kp=10
-Ki=5
-Kd=0.222
+setpoint = 13
+Kp=5
+Ki=0
+Kd=0
 DT = 0.02
 #Best values
 '''
